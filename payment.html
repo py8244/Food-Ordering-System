@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Payment - Food Ordering System</title>
+  <style>
+    body{font-family:Arial, sans-serif;background:#f7f7f7;margin:0;padding:20px}
+    .container{max-width:700px;margin:30px auto;background:#fff;padding:26px;border-radius:10px;box-shadow:0 3px 18px rgba(0,0,0,.06)}
+    h1{margin:0 0 18px;font-size:28px}
+    label{display:block;margin:12px 0 6px;font-weight:600}
+    input[type="text"], input[type="tel"], input[type="month"], input[type="password"]{
+      width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:8px;font-size:15px;
+      box-sizing:border-box;
+    }
+    .row{display:flex;gap:12px}
+    .row > div{flex:1}
+    .btn{background:orange;color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-size:16px;margin-top:16px}
+    .btn.secondary{background:#e9ecef;color:#111}
+    .small{color:#666;font-size:14px}
+    .center{text-align:center}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Payment</h1>
+
+    <div id="order-summary"></div>
+
+    <form id="payment-form" onsubmit="submitPayment(event)">
+      <label>Card Holder Name</label>
+      <input type="text" id="card-name" placeholder="Full name on card" required>
+
+      <label>Card Number</label>
+      <input type="tel" id="card-number" placeholder="1234 5678 9012 3456" pattern="[0-9\s]{13,19}" required>
+
+      <div class="row">
+        <div>
+          <label>Expiry (MM/YY)</label>
+          <input type="text" id="expiry" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])\/\d{2}" required>
+        </div>
+        <div>
+          <label>CVV</label>
+          <input type="password" id="cvv" maxlength="4" placeholder="123" required>
+        </div>
+      </div>
+
+      <div class="center">
+        <button class="btn" id="pay-btn" type="submit">Pay ₹0</button>
+      </div>
+    </form>
+
+    <div style="margin-top:14px" class="small">* This demo simulates payment. Do not enter real card details.</div>
+  </div>
+
+  <script>
+    const ORDER_KEY = 'current_order';
+    const CART_KEY = 'food_cart';
+
+    function loadOrder(){
+      const raw = localStorage.getItem(ORDER_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }
+
+    function renderOrder(){
+      const order = loadOrder();
+      const cont = document.getElementById('order-summary');
+      if(!order){
+        cont.innerHTML = '<p class="small">No active order. Return to the <a href="place_order.html">order page</a>.</p>';
+        document.getElementById('pay-btn').disabled = true;
+        return;
+      }
+      let html = '<h3>Order: <span style="color:green">'+order.id+'</span></h3>';
+      html += '<ul>';
+      order.items.forEach(it => {
+        const q = it.qty || 1;
+        html += `<li>${it.name} x ${q} — ₹${(q * parseFloat(it.cost)).toFixed(2)}</li>`;
+      });
+      html += '</ul>';
+      html += `<p style="font-weight:700">Total: ₹${order.total.toFixed(2)}</p>`;
+      cont.innerHTML = html;
+      document.getElementById('pay-btn').innerText = 'Pay ₹' + order.total.toFixed(2);
+    }
+
+    function submitPayment(e){
+      e.preventDefault();
+      const order = loadOrder();
+      if(!order){ alert('No order found.'); return; }
+
+      // Basic validation
+      const name = document.getElementById('card-name').value.trim();
+      const number = document.getElementById('card-number').value.replace(/\s+/g,'');
+      const expiry = document.getElementById('expiry').value.trim();
+      const cvv = document.getElementById('cvv').value.trim();
+
+      if(name.length < 2 || number.length < 12 || cvv.length < 3){
+        alert('Please enter valid card details (demo validation).');
+        return;
+      }
+
+      // Simulate payment processing...
+      document.getElementById('pay-btn').disabled = true;
+      document.getElementById('pay-btn').innerText = 'Processing...';
+
+      setTimeout(()=>{
+        // Save payment confirmation
+        const paymentResult = {
+          status: 'success',
+          amount: order.total,
+          txnId: 'TXN' + Date.now()
+        };
+        localStorage.setItem('payment_result', JSON.stringify(paymentResult));
+
+        // clear cart (in real app, only after successful server confirmation)
+        localStorage.removeItem(CART_KEY);
+
+        // navigate to confirmation page
+        window.location.href = 'confirmed.html';
+      }, 900);
+    }
+
+    // init
+    renderOrder();
+  </script>
+</body>
+</html>
